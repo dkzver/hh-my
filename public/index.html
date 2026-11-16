@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <title>HH ТЗ Finder — вакансии с подробным ТЗ</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-mark">HH</span><span>ТЗ Finder</span></a>
+    <span class="api-status"><i></i> HeadHunter API</span>
+  </header>
+  <main class="layout">
+    <section class="hero">
+      <div class="eyebrow">УМНЫЙ ПОИСК ВАКАНСИЙ</div>
+      <h1>Находите работу,<br><span>а не загадки в описании.</span></h1>
+      <p>Ищем вакансии на HeadHunter и оцениваем, насколько подробно работодатель описал задачи, требования и технический стек.</p>
+    </section>
+
+    <section class="search-panel">
+      <form id="search-form">
+        <label class="field-label" for="query">Что ищем?</label>
+        <div class="search-row">
+          <input id="query" name="text" value="PHP OR Node.js OR React OR JavaScript" placeholder="Например: Node.js, React, PHP" required>
+          <button type="submit" id="search-button"><span>Найти вакансии</span><b>→</b></button>
+        </div>
+        <div class="filters">
+          <label>Регион
+            <input name="area" placeholder="Например, 1 — Москва">
+          </label>
+          <label>Опыт
+            <select name="experience">
+              <option value="">Любой</option>
+              <option value="noExperience">Нет опыта</option>
+              <option value="between1And3">От 1 до 3 лет</option>
+              <option value="between3And6">От 3 до 6 лет</option>
+              <option value=" moreThan6">Более 6 лет</option>
+            </select>
+          </label>
+          <label>Зарплата от
+            <input name="salary" type="number" min="0" placeholder="Не важно">
+          </label>
+          <label>Подробность ТЗ
+            <select name="min_score">
+              <option value="0">Все описания</option>
+              <option value="30">От 30 баллов</option>
+              <option value="50" selected>От 50 баллов</option>
+              <option value="70">От 70 баллов</option>
+            </select>
+          </label>
+        </div>
+      </form>
+      <div class="search-note"><span>✦</span> Каждая вакансия анализируется по полному описанию, а не только по короткому сниппету.</div>
+    </section>
+
+    <section class="results-head">
+      <div><div class="eyebrow">РЕЗУЛЬТАТЫ ПОИСКА</div><h2 id="results-title">Подходящие вакансии</h2></div>
+      <div class="result-count" id="result-count">Готовы к поиску</div>
+    </section>
+    <div id="message" class="message">Введите запрос и нажмите «Найти вакансии».</div>
+    <section id="results" class="results" aria-live="polite"></section>
+    <div class="pagination"><button id="prev" disabled>← Назад</button><span id="page-label">Страница 1</span><button id="next" disabled>Вперёд →</button></div>
+    <footer>Данные предоставляются API HeadHunter. Оценка подробности ТЗ — автоматическая подсказка, а не гарантия качества вакансии.</footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

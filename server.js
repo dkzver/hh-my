@@ -42,6 +42,17 @@ async function hhGet(endpoint) {
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+// Bitrix24 integration via VibeCode Gateway (session is injected on embedded requests).
+app.use('/api/bitrix', require('./src/bitrix24'));
+
+app.use((error, _req, res, _next) => {
+  console.error('API error:', error);
+  res.status(error.status || 500).json({
+    error: error.message || 'Внутренняя ошибка сервера',
+    code: error.code || 'INTERNAL_ERROR'
+  });
+});
+
 app.get('/api/search', async (req, res) => {
   try {
     const query = String(req.query.text || 'PHP OR Node.js OR React').slice(0, 200);

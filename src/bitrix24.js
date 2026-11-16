@@ -4,35 +4,30 @@ const router = express.Router();
 const API_BASE = process.env.VIBECODE_API_URL || 'https://vibecode.bitrix24.com/v1';
 
 function getSession(req) {
-  const authorization = req.get('x-vibe-authorization');
-  const userId = req.get('x-vibe-user-id');
-  if (!authorization || !/^Bearer vibe_session_[A-Za-z0-9_-]+$/.test(authorization)) {
-    const error = new Error('Откройте приложение из интерфейса Битрикс24: сессия сотрудника не найдена.');
+  // Black Hole Gateway forwards the user's session token in this header.
+  const sessionToken = req.get('x-vibe-authorization');
+  if (!sessionToken || !/^vibe_session_[A-Za-z0-9_-]+$/.test(sessionToken)) {
+    const error = new Error('Откройте приложение из интерфейса Битрикс24: сессия сотрудника не найдена или истекла.');
     error.status = 401;
     throw error;
   }
-  if (!userId || !/^\\d+$/.test(userId)) {
-    const error = new Error('Не удалось определить сотрудника Битрикс24.');
-    error.status = 401;
-    throw error;
-  }
-  return { authorization, userId };
+  return sessionToken;
 }
 
 async function vibeRequest(req, endpoint, options = {}) {
   const apiKey = process.env.VIBE_APP_KEY;
   if (!apiKey) {
-    const error = new Error('Не настроен VIBE_APP_KEY. Добавьте ключ авторизации приложения в переменные окружения сервера.');
+    const error = new Error('Не настроен VIBE_APP_KEY. Добавьте ключ авторизации приложения в секреты сервера.');
     error.status = 503;
     throw error;
   }
 
-  const session = getSession(req);
+  const sessionToken = getSession(req);
   const response = await fetch(API_BASE + endpoint, {
     method: options.method || 'GET',
     headers: {
       'X-Api-Key': apiKey,
-      'Authorization': session.authorization,
+      'Authorization': 'Bearer ' + sessionToken,
       'Accept': 'application/json',
       ...(options.body ? { 'Content-Type': 'application/json' } : {})
     },
@@ -46,29 +41,26 @@ async function vibeRequest(req, endpoint, options = {}) {
     error.code = payload.error?.code || 'BITRIX_API_ERROR';
     throw error;
   }
-  return { payload, session };
+  return payload;
 }
 
 router.get('/status', (req, res) => {
+  const sessionToken = req.get('x-vibe-authorization') || '';
   res.json({
     configured: Boolean(process.env.VIBE_APP_KEY),
     platform: 'VibeCode',
-    user: req.get('x-vibe-user-id') ? {
-      id: /^\\d+$/.test(req.get('x-vibe-user-id')) ? req.get('x-vibe-user-id') : null,
-      name: decodeURIComponent(req.get('x-vibe-user-name-encoded') || ''),
-      role: req.get('x-vibe-user-role') || null
-    } : null
+    sessionPresent: /^vibe_session_[A-Za-z0-9_-]+$/.test(sessionToken)
   });
 });
 
 router.get('/me', async (req, res, next) => {
   try {
-    const { payload, session } = await vibeRequest(req, '/me');
+    const payload = await vibeRequest(req, '/me');
     res.json({
       success: true,
-      user: payload.data?.currentUser || payload.data?.user || null,
+      user: payload.data?.currentUser || null,
       portal: payload.data?.portal || null,
-      bitrixUserId: session.userId
+      scopes: payload.data?.scopes || []
     });
   } catch (error) {
     next(error);
@@ -93,11 +85,11 @@ router.post('/leads', async (req, res, next) => {
       comments: String(input.comments || '').slice(0, 5000),
       opened: true
     };
-    for (const field of ['phone', 'email', 'post', 'companyTitle', 'assignedById']) {
+    for (const field of ['phone', 'email', 'post', 'companyTitle', 'assignedById', 'sourceId', 'stageId']) {
       if (input[field] !== undefined && input[field] !== '') lead[field] = input[field];
     }
 
-    const { payload } = await vibeRequest(req, '/leads', { method: 'POST', body: lead });
+    const payload = await vibeRequest(req, '/leads', { method: 'POST', body: lead });
     res.status(201).json({ success: true, lead: payload.data });
   } catch (error) {
     next(error);
